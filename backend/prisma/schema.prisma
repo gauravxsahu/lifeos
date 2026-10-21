@@ -1,0 +1,247 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String               @id @default(uuid())
+  email              String               @unique
+  passwordHash       String
+  displayName        String
+  preferredLanguage  String               @default("en") // en, hi, hinglish, bn, ta, te, mr, gu, pa, kn, ml
+  careerCategory     String               @default("Software Engineering")
+  communicationStyle String               @default("FRIENDLY_FRIEND") // FRIENDLY_FRIEND, PROFESSIONAL_MENTOR, MOTIVATOR, CALM_COMPANION
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  preference         UserPreference?
+  devices            Device[]
+  goals              DailyGoal[]
+  monitoredApps      MonitoredApplication[]
+  interventions      Intervention[]
+  savedStories       SavedStory[]
+  focusSessions      FocusSession[]
+  notificationPrefs  NotificationPreference[]
+
+  @@index([email])
+}
+
+model UserPreference {
+  id                       String   @id @default(uuid())
+  userId                   String   @unique
+  deliveryMode             String   @default("TEXT_ONLY") // TEXT_ONLY, VOICE_AND_TEXT, VOICE_ONLY, SMART_COMPANION
+  voiceAssistantEnabled    Boolean  @default(true)
+  voiceRemindersEnabled    Boolean  @default(false)
+  spokenStoriesEnabled     Boolean  @default(false)
+  preferredVoiceId         String?
+  speakingRate             Float    @default(1.0)
+  notificationSoundEnabled Boolean  @default(true) // Optional 5-second reminder sound
+  quietHoursStart          String   @default("22:00")
+  quietHoursEnd            String   @default("07:00")
+  timeZone                 String   @default("UTC")
+  reminderFrequencyLimit   Int      @default(30) // cooldown minutes between reminders
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Device {
+  id            String            @id @default(uuid())
+  userId        String
+  platform      String            @default("ANDROID") // ANDROID, WEB
+  deviceName    String?
+  lastSyncAt    DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageSummaries AppUsageSummary[]
+  interventions Intervention[]
+
+  @@index([userId])
+}
+
+model DailyGoal {
+  id            String           @id @default(uuid())
+  userId        String
+  title         String
+  description   String?
+  category      String           @default("Career") // Career, Studies, Fitness, Personal Development
+  targetValue   Float            @default(1)
+  targetUnit    String           @default("task") // questions, minutes, hours, pages, workouts, task
+  priority      String           @default("MEDIUM") // LOW, MEDIUM, HIGH
+  schedule      String           @default("DAILY") // DAILY, WEEKDAYS, WEEKENDS
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions   GoalCompletion[]
+  focusSessions FocusSession[]
+
+  @@index([userId, isActive])
+}
+
+model GoalCompletion {
+  id             String    @id @default(uuid())
+  goalId         String
+  completionDate String    // YYYY-MM-DD
+  completedValue Float     @default(1)
+  isCompleted    Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  goal           DailyGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, completionDate])
+  @@index([goalId])
+}
+
+model MonitoredApplication {
+  id                String           @id @default(uuid())
+  userId            String
+  packageName       String
+  displayName       String
+  isEnabled         Boolean          @default(true)
+  dailyLimitMinutes Int              @default(60)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thresholds        UsageThreshold[]
+
+  @@unique([userId, packageName])
+  @@index([userId])
+}
+
+model UsageThreshold {
+  id                     String               @id @default(uuid())
+  monitoredApplicationId String
+  thresholdMinutes       Int
+  reminderMode           String               @default("TEXT_ONLY") // TEXT_ONLY, VOICE_AND_TEXT, VOICE_ONLY, SMART_COMPANION
+  storyEnabled           Boolean              @default(true)
+  voiceEnabled           Boolean              @default(false)
+  isEnabled              Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  monitoredApp           MonitoredApplication @relation(fields: [monitoredApplicationId], references: [id], onDelete: Cascade)
+
+  @@unique([monitoredApplicationId, thresholdMinutes])
+  @@index([monitoredApplicationId])
+}
+
+model AppUsageSummary {
+  id              String   @id @default(uuid())
+  deviceId        String
+  packageName     String
+  usageDate       String   // YYYY-MM-DD
+  durationMinutes Float    @default(0)
+  syncedAt        DateTime @default(now())
+
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, packageName, usageDate])
+  @@index([deviceId, usageDate])
+}
+
+model Intervention {
+  id               String            @id @default(uuid())
+  userId           String
+  deviceId         String?
+  packageName      String
+  thresholdMinutes Int
+  interventionType String            @default("USAGE_THRESHOLD") // USAGE_THRESHOLD, GOAL_RESCUE, FOCUS_COMPLETION
+  deliveryMode     String            @default("TEXT_ONLY")
+  storyId          String?
+  status           String            @default("DELIVERED") // DELIVERED, DISMISSED, ACTION_TAKEN, SNOOZED
+  triggeredAt      DateTime          @default(now())
+  dismissedAt      DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device           Device?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  story            MotivationalStory? @relation(fields: [storyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, triggeredAt])
+  @@index([userId, packageName, thresholdMinutes])
+}
+
+model MotivationalStory {
+  id                 String         @id @default(uuid())
+  title              String
+  subject            String         // Person or topic (e.g. Linus Torvalds, Steve Wozniak, Satya Nadella)
+  careerCategory     String         // Software Engineering, Artificial Intelligence, Science, etc.
+  summary            String
+  fullContent        String
+  supportedLanguages String[]       @default(["en", "hi", "hinglish"])
+  verificationStatus String         @default("VERIFIED") // VERIFIED, SOURCED, GENERAL
+  lastVerifiedAt     DateTime       @default(now())
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  sources            StorySource[]
+  savedByUsers       SavedStory[]
+  interventions      Intervention[]
+
+  @@index([careerCategory])
+}
+
+model StorySource {
+  id         String            @id @default(uuid())
+  storyId    String
+  sourceName String
+  sourceUrl  String
+  sourceType String            @default("BIOGRAPHY") // BIOGRAPHY, OFFICIAL_DOC, INTERVIEW, BOOK, ACADEMIC_PAPER
+  accessedAt DateTime          @default(now())
+
+  story      MotivationalStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+}
+
+model SavedStory {
+  id        String            @id @default(uuid())
+  userId    String
+  storyId   String
+  savedAt   DateTime          @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story     MotivationalStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
+}
+
+model FocusSession {
+  id                    String     @id @default(uuid())
+  userId                String
+  goalId                String?
+  durationSeconds       Int        @default(1500) // 25 mins
+  actualDurationSeconds Int        @default(0)
+  status                String     @default("COMPLETED") // RUNNING, PAUSED, COMPLETED, CANCELLED
+  startedAt             DateTime   @default(now())
+  completedAt           DateTime?
+
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal                  DailyGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+}
+
+model NotificationPreference {
+  id                    String   @id @default(uuid())
+  userId                String
+  notificationType      String   // THRESHOLD_ALERT, GOAL_RESCUE, DAILY_DIGEST, FOCUS_REMINDER
+  isEnabled             Boolean  @default(true)
+  preferredDeliveryMode String   @default("TEXT_ONLY")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@index([userId])
+}

@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.apk
+*.aab
+*.keystore
+
+# Environment files
+.env
+.env.local
+.env.production
+backend/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Prisma
+backend/prisma/*.db
+backend/prisma/migrations/
+
+# Android
+android/android/build/
+android/android/app/build/
+android/android/.gradle/
+android/android/local.properties
+android/dist/
+
+# Web
+web/dist/
+
+# Temp
+*.tgz
+.cache/
