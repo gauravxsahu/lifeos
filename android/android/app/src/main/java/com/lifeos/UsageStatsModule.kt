@@ -52,6 +52,70 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     }
 
     /**
+     * Checks whether SYSTEM_ALERT_WINDOW (display over other apps) permission is granted.
+     */
+    @ReactMethod
+    fun hasOverlayPermission(promise: Promise) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                promise.resolve(Settings.canDrawOverlays(reactContext))
+            } else {
+                promise.resolve(true)
+            }
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    /**
+     * Opens Android Settings allowing user to grant "Display over other apps" permission.
+     */
+    @ReactMethod
+    fun openOverlaySettings(promise: Promise) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                try {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:" + reactContext.packageName)
+                    ).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    reactContext.startActivity(intent)
+                    promise.resolve(true)
+                } catch (e: Exception) {
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    reactContext.startActivity(intent)
+                    promise.resolve(true)
+                }
+            } else {
+                promise.resolve(true)
+            }
+        } catch (e: Exception) {
+            promise.reject("SETTINGS_OPEN_ERROR", e.message, e)
+        }
+    }
+
+    /**
+     * Shows a gentle floating card overlay popup over the current foreground app (e.g. Instagram).
+     */
+    @ReactMethod
+    fun showOverlay(title: String, message: String, promise: Promise) {
+        try {
+            val intent = Intent(reactContext, OverlayService::class.java).apply {
+                putExtra("EXTRA_TITLE", title)
+                putExtra("EXTRA_MESSAGE", message)
+            }
+            reactContext.startService(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("OVERLAY_ERROR", e.message, e)
+        }
+    }
+
+    /**
      * Queries foreground accumulated usage between startTime and endTime.
      * Enforces data minimization: only returns packageName, totalTimeInForeground, and lastTimeUsed.
      */

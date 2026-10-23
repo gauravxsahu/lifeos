@@ -38,6 +38,39 @@ export const UsageStatsBridge = {
     return true;
   },
 
+  async hasOverlayPermission(): Promise<boolean> {
+    if (Platform.OS === 'android' && NativeModules?.UsageStatsModule?.hasOverlayPermission) {
+      try {
+        return await NativeModules.UsageStatsModule.hasOverlayPermission();
+      } catch (e) {
+        console.warn('Native hasOverlayPermission failed:', e);
+      }
+    }
+    return true;
+  },
+
+  async openOverlaySettings(): Promise<boolean> {
+    if (Platform.OS === 'android' && NativeModules?.UsageStatsModule?.openOverlaySettings) {
+      try {
+        return await NativeModules.UsageStatsModule.openOverlaySettings();
+      } catch (e) {
+        console.warn('Native openOverlaySettings failed:', e);
+      }
+    }
+    return true;
+  },
+
+  async showOverlay(title: string, message: string): Promise<boolean> {
+    if (Platform.OS === 'android' && NativeModules?.UsageStatsModule?.showOverlay) {
+      try {
+        return await NativeModules.UsageStatsModule.showOverlay(title, message);
+      } catch (e) {
+        console.warn('Native showOverlay failed:', e);
+      }
+    }
+    return true;
+  },
+
   async queryDailyUsage(packageNames: string[]): Promise<AppUsageStat[]> {
     if (Platform.OS === 'android' && NativeModules?.UsageStatsModule?.queryDailyUsage) {
       try {
