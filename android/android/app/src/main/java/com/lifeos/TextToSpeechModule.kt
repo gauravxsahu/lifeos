@@ -11,12 +11,18 @@ class TextToSpeechModule(private val reactContext: ReactApplicationContext) :
     private var tts: TextToSpeech? = null
     private var isInitialized = false
 
-    init {
-        tts = TextToSpeech(reactContext, this)
-    }
-
     override fun getName(): String {
         return "TextToSpeechModule"
+    }
+
+    private fun ensureTts() {
+        if (tts == null) {
+            try {
+                tts = TextToSpeech(reactContext.applicationContext, this)
+            } catch (e: Exception) {
+                isInitialized = false
+            }
+        }
     }
 
     override fun onInit(status: Int) {
@@ -33,15 +39,16 @@ class TextToSpeechModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun speak(text: String, langCode: String, rate: Float, promise: Promise) {
-        if (!isInitialized || tts == null) {
-            promise.reject("TTS_NOT_INITIALIZED", "Android TextToSpeech engine not ready")
+    fun speak(text: String, languageCode: String, speedRate: Float, promise: Promise) {
+        ensureTts()
+        if (tts == null) {
+            promise.reject("TTS_NOT_AVAILABLE", "TTS Engine could not be created")
             return
         }
 
         try {
-            val locale = when (langCode.lowercase()) {
-                "hi", "hinglish" -> Locale("hi", "IN")
+            val locale = when (languageCode.lowercase()) {
+                "hi" -> Locale("hi", "IN")
                 "bn" -> Locale("bn", "IN")
                 "ta" -> Locale("ta", "IN")
                 "te" -> Locale("te", "IN")
@@ -50,22 +57,22 @@ class TextToSpeechModule(private val reactContext: ReactApplicationContext) :
                 "pa" -> Locale("pa", "IN")
                 "kn" -> Locale("kn", "IN")
                 "ml" -> Locale("ml", "IN")
-                else -> Locale.US
+                else -> Locale.ENGLISH
             }
 
             tts?.language = locale
-            tts?.setSpeechRate(rate)
+            tts?.setSpeechRate(speedRate)
 
-            val utteranceId = "lifeos_${System.currentTimeMillis()}"
+            val utteranceId = "LIFEOS_REMINDER_${System.currentTimeMillis()}"
             val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
 
             if (result == TextToSpeech.SUCCESS) {
                 promise.resolve(true)
             } else {
-                promise.reject("TTS_SPEAK_FAILED", "Failed to enqueue speech")
+                promise.reject("TTS_SPEAK_ERROR", "Speech playback failed to queue")
             }
         } catch (e: Exception) {
-            promise.reject("TTS_ERROR", e.message, e)
+            promise.reject("TTS_EXCEPTION", e.message, e)
         }
     }
 
@@ -80,8 +87,12 @@ class TextToSpeechModule(private val reactContext: ReactApplicationContext) :
     }
 
     override fun onCatalystInstanceDestroy() {
+        try {
+            tts?.stop()
+            tts?.shutdown()
+        } catch (e: Exception) {
+            // Ignore on shutdown
+        }
         super.onCatalystInstanceDestroy()
-        tts?.stop()
-        tts?.shutdown()
     }
 }
