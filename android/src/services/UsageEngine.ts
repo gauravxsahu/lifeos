@@ -114,9 +114,33 @@ export class UsageEngine {
             // Mark as triggered to prevent duplicates
             this.triggeredThresholds.add(deduplicationKey);
 
-            // Construct friendly, non-shaming message
-            const title = `Hey ${userName}! ❤️`;
-            const message = `${Math.round(stat.totalMinutes)} minutes on ${app.displayName} already! No worries, how about taking a small 20-minute break to work on today's goals?`;
+            // Construct friendly, non-shaming message based on selected language
+            let title = `Hey ${userName}! ❤️`;
+            let message = `${Math.round(stat.totalMinutes)} minutes on ${app.displayName} already! No worries, how about taking a small 20-minute break to work on today's goals?`;
+
+            const langCode = (lang || 'en').toLowerCase();
+            if (langCode === 'hi') {
+              title = `नमस्ते ${userName}! ❤️`;
+              message = `${app.displayName} पर ${Math.round(stat.totalMinutes)} मिनट हो चुके हैं! कोई बात नहीं, क्या हम 20 मिनट का एक छोटा ब्रेक लेकर आज के गोल्स पर काम करें?`;
+            } else if (langCode === 'hinglish') {
+              title = `Hey ${userName}! ❤️`;
+              message = `${app.displayName} par already ${Math.round(stat.totalMinutes)} minutes ho chuke hain! Tension mat lo, kya hum 20 minute ka break lekar aaj ke goals complete karein?`;
+            } else if (langCode === 'mr') {
+              title = `नमस्कार ${userName}! ❤️`;
+              message = `${app.displayName} वर ${Math.round(stat.totalMinutes)} मिनिटे झाली आहेत. काळजी करू नका, आजच्या उद्दिष्टांवर काम करण्यासाठी २० मिनिटांचा ब्रेक घेऊया का?`;
+            } else if (langCode === 'bn') {
+              title = `নমস্কার ${userName}! ❤️`;
+              message = `${app.displayName}-এ ইতিমধ্যে ${Math.round(stat.totalMinutes)} মিনিট হয়ে গেছে। চিন্তা করবেন না, আজকের লক্ষ্যগুলিতে কাজ করার জন্য ২০ মিনিটের বিরতি নেওয়া যাক?`;
+            } else if (langCode === 'ta') {
+              title = `வணக்கம் ${userName}! ❤️`;
+              message = `${app.displayName}-ல் ஏற்கனவே ${Math.round(stat.totalMinutes)} நிமிடங்கள் ஆகிவிட்டன. கவலைப்பட வேண்டாம், இன்றைய இலக்குகளை அடைய 20 நிமிட இடைவேளை எடுப்போமா?`;
+            } else if (langCode === 'te') {
+              title = `నమస్కారం ${userName}! ❤️`;
+              message = `${app.displayName} లో ఇప్పటికే ${Math.round(stat.totalMinutes)} నిమిషాలు పూర్తయ్యాయి. పర్వాలేదు, నేటి లక్ష్యాలపై దృష్టి పెట్టడానికి 20 నిమిషాల విరామం తీసుకుందామా?`;
+            } else if (langCode === 'gu') {
+              title = `નમસ્તે ${userName}! ❤️`;
+              message = `${app.displayName} પર ${Math.round(stat.totalMinutes)} મિનિટ થઈ ગઈ છે! ચિંતા કરશો નહીં, આજના લક્ષ્યો પર કામ કરવા 20 મિનિટનો બ્રેક લઈએ?`;
+            }
 
             // Trigger voice if delivery mode or threshold requires voice
             if (
@@ -124,7 +148,7 @@ export class UsageEngine {
               th.reminderMode === 'VOICE_AND_TEXT' ||
               th.reminderMode === 'VOICE_ONLY'
             ) {
-              TextToSpeechBridge.speak(message, lang);
+              TextToSpeechBridge.speak(message, langCode);
             }
 
             return {

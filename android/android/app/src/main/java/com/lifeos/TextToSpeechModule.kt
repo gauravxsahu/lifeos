@@ -49,6 +49,7 @@ class TextToSpeechModule(private val reactContext: ReactApplicationContext) :
         try {
             val locale = when (languageCode.lowercase()) {
                 "hi" -> Locale("hi", "IN")
+                "hinglish" -> Locale("hi", "IN")
                 "bn" -> Locale("bn", "IN")
                 "ta" -> Locale("ta", "IN")
                 "te" -> Locale("te", "IN")
