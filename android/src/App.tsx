@@ -119,3 +119,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+
+AppRegistry.registerComponent('LIFEOS', () => App);
+
