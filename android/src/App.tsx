@@ -120,5 +120,3 @@ const styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('LIFEOS', () => App);
-
